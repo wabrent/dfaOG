@@ -1,0 +1,25 @@
+{
+  "name": "defi-risk-auditor",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "concurrently \"npm run build:backend\" \"npm run build:frontend\"",
+    "build:backend": "cd backend && echo 'Backend build complete'",
+    "build:frontend": "cd frontend && npm run build",
+    "lint": "concurrently \"npm run lint:backend\" \"npm run lint:frontend\"",
+    "lint:backend": "cd backend && black . --check && ruff check .",
+    "lint:frontend": "cd frontend && npm run lint",
+    "test": "concurrently \"npm run test:backend\" \"npm run test:frontend\"",
+    "test:backend": "cd backend && pytest",
+    "test:frontend": "cd frontend && npm test",
+    "format": "concurrently \"npm run format:backend\" \"npm run format:frontend\"",
+    "format:backend": "cd backend && black . && ruff --fix .",
+    "format:frontend": "cd frontend && npm run lint -- --fix"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

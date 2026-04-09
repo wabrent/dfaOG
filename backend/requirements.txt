@@ -1,0 +1,17 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+opengradient>=0.9.6
+python-dotenv==1.0.0
+redis==5.0.1
+httpx==0.25.2
+pydantic==2.5.0
+pydantic-settings==2.1.0
+slowapi==0.1.8
+python-multipart==0.0.6
+aiofiles==23.2.1
+click==8.1.7
+orjson==3.9.10
+
+# Optional for enhanced data
+# web3>=7.0.0
+# defillama>=0.1.0
