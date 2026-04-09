@@ -1,13 +1,23 @@
 import asyncio
 import os
+import json
+import re
 from typing import Dict, Any, Optional
-import opengradient as og
+from datetime import datetime
+
+# Try to import OpenGradient, but provide fallback if not available
+try:
+    import opengradient as og
+    OPENGRADIENT_INSTALLED = True
+except ImportError:
+    OPENGRADIENT_INSTALLED = False
+    og = None
+
 from app.core.config import settings
-from app.models.schemas import RiskLevel, DimensionScore
 
 
 class OpenGradientClient:
-    """Client for OpenGradient TEE-verified inference"""
+    """Client for OpenGradient TEE-verified inference with fallback support"""
     
     def __init__(self):
         self.private_key = settings.opengradient_private_key
@@ -18,20 +28,11 @@ class OpenGradientClient:
         self.llm = None
         self.initialized = False
     
-    async def initialize(self):
-        """Initialize OpenGradient clients"""
-        if not self.private_key:
-            raise ValueError("OpenGradient private key not configured")
-        
-        self.llm = og.LLM(private_key=self.private_key)
-        
-        # Ensure OPG token approval
-        await self.llm.ensure_opg_approval(min_allowance=5)
-        
-        self.initialized = True
-    
-    def _get_settlement_mode(self, mode: str) -> og.x402SettlementMode:
+    def _get_settlement_mode(self, mode: str):
         """Convert string to OpenGradient settlement mode"""
+        if not OPENGRADIENT_INSTALLED:
+            return "BATCH_HASHED"
+        
         mode_map = {
             "PRIVATE": og.x402SettlementMode.PRIVATE,
             "BATCH_HASHED": og.x402SettlementMode.BATCH_HASHED,
@@ -39,8 +40,11 @@ class OpenGradientClient:
         }
         return mode_map.get(mode.upper(), og.x402SettlementMode.BATCH_HASHED)
     
-    def _get_model(self, model_name: str) -> og.TEE_LLM:
+    def _get_model(self, model_name: str):
         """Convert string to OpenGradient model"""
+        if not OPENGRADIENT_INSTALLED:
+            return "GPT_5"
+        
         model_map = {
             "GPT_5": og.TEE_LLM.GPT_5,
             "GPT_5_MINI": og.TEE_LLM.GPT_5_MINI,
@@ -52,43 +56,72 @@ class OpenGradientClient:
         }
         return model_map.get(model_name, og.TEE_LLM.GPT_5)
     
+    async def initialize(self):
+        """Initialize OpenGradient clients"""
+        if not OPENGRADIENT_INSTALLED:
+            print("⚠️  OpenGradient not installed - running in simulation mode")
+            self.initialized = True
+            return
+        
+        if not self.private_key or self.private_key == "test_key_not_set":
+            print("⚠️  OpenGradient private key not configured - running in simulation mode")
+            self.initialized = True
+            return
+        
+        try:
+            self.llm = og.LLM(private_key=self.private_key)
+            
+            # Ensure OPG token approval
+            await self.llm.ensure_opg_approval(min_allowance=5)
+            
+            self.initialized = True
+            print(f"✓ OpenGradient initialized with model: {self.model.name}")
+        except Exception as e:
+            print(f"⚠️  OpenGradient initialization failed: {e}")
+            print("  Running in simulation mode")
+            self.initialized = True  # Mark as initialized but in simulation mode
+    
     async def analyze_protocol_risk(self, protocol_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Analyze DeFi protocol risk using TEE-verified LLM
-        
-        Args:
-            protocol_data: Protocol information including address, TVL, code analysis, etc.
-        
-        Returns:
-            Dict containing risk analysis and proof
+        Analyze DeFi protocol risk using TEE-verified LLM or simulation
         """
         if not self.initialized:
             await self.initialize()
         
-        # Construct analysis prompt
-        prompt = self._construct_risk_analysis_prompt(protocol_data)
+        # If OpenGradient is not available or not properly configured, use simulation
+        if not OPENGRADIENT_INSTALLED or not self.llm:
+            return self._simulate_risk_analysis(protocol_data)
         
-        # Execute TEE-verified inference
-        completion = await self.llm.chat(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            x402_settlement_mode=self.settlement_mode,
-            temperature=0.1,  # Low temperature for consistent analysis
-        )
-        
-        # Parse response
-        analysis = self._parse_llm_response(completion.chat_output['content'])
-        
-        # Add proof information
-        analysis["proof"] = {
-            "transaction_hash": completion.transaction_hash,
-            "settlement_mode": completion.x402_settlement_mode.name,
-            "model": self.model.name,
-            "timestamp": completion.timestamp,
-            "explorer_url": f"https://sepolia.basescan.org/tx/{completion.transaction_hash}"
-        }
-        
-        return analysis
+        try:
+            # Construct analysis prompt
+            prompt = self._construct_risk_analysis_prompt(protocol_data)
+            
+            # Execute TEE-verified inference
+            completion = await self.llm.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                x402_settlement_mode=self.settlement_mode,
+                temperature=0.1,  # Low temperature for consistent analysis
+            )
+            
+            # Parse response
+            analysis = self._parse_llm_response(completion.chat_output['content'])
+            
+            # Add proof information
+            analysis["proof"] = {
+                "transaction_hash": completion.transaction_hash,
+                "settlement_mode": completion.x402_settlement_mode.name,
+                "model": self.model.name,
+                "timestamp": completion.timestamp,
+                "explorer_url": f"https://sepolia.basescan.org/tx/{completion.transaction_hash}"
+            }
+            
+            return analysis
+            
+        except Exception as e:
+            print(f"⚠️  OpenGradient analysis failed: {e}")
+            print("  Falling back to simulation mode")
+            return self._simulate_risk_analysis(protocol_data)
     
     def _construct_risk_analysis_prompt(self, protocol_data: Dict[str, Any]) -> str:
         """Construct structured prompt for risk analysis"""
@@ -144,9 +177,6 @@ class OpenGradientClient:
     
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into structured analysis"""
-        import json
-        import re
-        
         # Extract JSON from response (handles potential markdown formatting)
         json_match = re.search(r'\{.*\}', response, re.DOTALL)
         if json_match:
@@ -168,6 +198,57 @@ class OpenGradientClient:
                 break
         
         return analysis
+    
+    def _simulate_risk_analysis(self, protocol_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulate risk analysis when OpenGradient is not available"""
+        print("🔧 Running simulated risk analysis (OpenGradient not available)")
+        
+        # Simple simulation based on protocol data
+        risk_score = 50  # Medium risk by default
+        confidence = 70
+        
+        # Adjust based on TVL if available
+        tvl = protocol_data.get('tvl', 0)
+        if tvl > 1000000000:  # > $1B TVL
+            risk_score = 30  # Lower risk for large protocols
+        elif tvl < 1000000:  # < $1M TVL
+            risk_score = 70  # Higher risk for small protocols
+        
+        risk_level = "LOW" if risk_score <= 20 else "MEDIUM" if risk_score <= 40 else "HIGH" if risk_score <= 60 else "CRITICAL"
+        
+        return {
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "confidence": confidence,
+            "dimensions": {
+                "tvl_risk": "UNKNOWN",
+                "approval_risk": "UNKNOWN",
+                "code_risk": "UNKNOWN",
+                "governance_risk": "UNKNOWN",
+                "economic_risk": "UNKNOWN",
+                "liquidity_risk": "UNKNOWN"
+            },
+            "key_findings": [
+                "Analysis performed in simulation mode",
+                "OpenGradient TEE-verification not available",
+                f"Protocol: {protocol_data.get('name', 'Unknown')}"
+            ],
+            "recommendations": [
+                {
+                    "priority": "HIGH",
+                    "title": "Enable OpenGradient TEE-verification",
+                    "description": "Configure OPENGRADIENT_PRIVATE_KEY environment variable for real TEE-verified analysis",
+                    "action_items": ["Set OPENGRADIENT_PRIVATE_KEY in environment variables", "Restart the application"]
+                }
+            ],
+            "proof": {
+                "transaction_hash": "0x" + "0" * 64,
+                "settlement_mode": "SIMULATION",
+                "model": "SIMULATION",
+                "timestamp": datetime.utcnow().isoformat(),
+                "explorer_url": None
+            }
+        }
     
     def _get_default_analysis(self) -> Dict[str, Any]:
         """Return default analysis when parsing fails"""
@@ -196,13 +277,13 @@ class OpenGradientClient:
 
 
 # Global client instance
-client: Optional[OpenGradientClient] = None
+_client: Optional[OpenGradientClient] = None
 
 
 async def get_opengradient_client() -> OpenGradientClient:
     """Get or initialize OpenGradient client"""
-    global client
-    if client is None:
-        client = OpenGradientClient()
-        await client.initialize()
-    return client
+    global _client
+    if _client is None:
+        _client = OpenGradientClient()
+        await _client.initialize()
+    return _client

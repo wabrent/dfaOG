@@ -1,14 +1,10 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-opengradient>=0.9.6
+# opengradient>=0.9.6  # Optional: requires Rust compilation, using simulation mode instead
 python-dotenv==1.0.0
-redis==5.0.1
 httpx==0.25.2
-pydantic>=2.0.0,<3.0.0
-pydantic-core>=2.10.1,<3.0.0
-pydantic-settings>=2.0.0,<3.0.0
-slowapi==0.1.8
-python-multipart==0.0.6
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
 aiofiles==23.2.1
 click==8.1.7
 

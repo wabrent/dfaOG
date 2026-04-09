@@ -157,41 +157,6 @@ async def audit_history(
     ]
 
 
-# Error handling middleware
-@router.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    """Add request ID and timing headers"""
-    request_id = str(uuid.uuid4())
-    start_time = time.time()
-    
-    response = await call_next(request)
-    
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    response.headers["X-Request-ID"] = request_id
-    
-    return response
 
 
-# Exception handlers
-@router.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=ErrorResponse(
-            error=exc.detail,
-            request_id=request.headers.get("X-Request-ID", "unknown")
-        ).dict()
-    )
 
-
-@router.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=500,
-        content=ErrorResponse(
-            error="Internal server error",
-            details=str(exc),
-            request_id=request.headers.get("X-Request-ID", "unknown")
-        ).dict()
-    )

@@ -7,7 +7,19 @@ import uuid
 
 from app.core.config import settings
 from app.api.routes import router
-from app.services.opengradient_client import get_opengradient_client
+
+# Try to import OpenGradient, but don't fail if not available
+try:
+    from app.services.opengradient_client import get_opengradient_client
+    OPENGRADIENT_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  OpenGradient not available: {e}")
+    OPENGRADIENT_AVAILABLE = False
+    get_opengradient_client = None
+except Exception as e:
+    print(f"⚠️  Failed to import OpenGradient: {e}")
+    OPENGRADIENT_AVAILABLE = False
+    get_opengradient_client = None
 
 app = FastAPI(
     title="DeFi Risk Auditor API",
@@ -35,14 +47,18 @@ async def startup_event():
     """Initialize services on startup"""
     print("Starting DeFi Risk Auditor API...")
     
-    # Initialize OpenGradient client
-    try:
-        client = await get_opengradient_client()
-        print(f"✓ OpenGradient initialized with model: {client.model.name}")
-        print(f"✓ Settlement mode: {client.settlement_mode.name}")
-    except Exception as e:
-        print(f"⚠️  OpenGradient initialization failed: {e}")
-        print("  Some features may be unavailable")
+    # Initialize OpenGradient client if available
+    if OPENGRADIENT_AVAILABLE and get_opengradient_client:
+        try:
+            client = await get_opengradient_client()
+            print(f"✓ OpenGradient initialized with model: {client.model.name}")
+            print(f"✓ Settlement mode: {client.settlement_mode.name}")
+        except Exception as e:
+            print(f"⚠️  OpenGradient initialization failed: {e}")
+            print("  Some features may be unavailable")
+    else:
+        print("⚠️  OpenGradient not available - running in limited mode")
+        print("  Set OPENGRADIENT_PRIVATE_KEY environment variable to enable TEE-verified analysis")
 
 
 @app.on_event("shutdown")

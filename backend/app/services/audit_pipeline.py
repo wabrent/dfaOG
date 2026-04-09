@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime
 from app.services.opengradient_client import get_opengradient_client
 from app.services.protocol_data import get_protocol_data_service
