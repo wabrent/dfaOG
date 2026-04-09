@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENGRADIENT_PRIVATE_KEY=${OPENGRADIENT_PRIVATE_KEY:-test_key}
+      - OPENGRADIENT_SETTLEMENT_MODE=BATCH_HASHED
+      - OPENGRADIENT_MODEL=GPT_5
+      - REDIS_URL=redis://redis:6379
+      - CACHE_TTL=300
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_PERIOD=3600
+      - DEBUG=True
+      - CORS_ORIGINS=["http://localhost:3000"]
+    volumes:
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_APP_NAME=DeFi Risk Auditor
+      - NEXT_PUBLIC_APP_DESCRIPTION=TEE-verified DeFi protocol risk analysis
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:

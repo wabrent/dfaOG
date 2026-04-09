@@ -1,0 +1,29 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+
+[variables]
+OPENGRADIENT_PRIVATE_KEY = ""
+OPENGRADIENT_SETTLEMENT_MODE = "BATCH_HASHED"
+OPENGRADIENT_MODEL = "GPT_5"
+DEFILLAMA_API_KEY = ""
+ETHERSCAN_API_KEY = ""
+ALCHEMY_API_KEY = ""
+REDIS_URL = "redis://localhost:6379"
+CACHE_TTL = "300"
+RATE_LIMIT_REQUESTS = "100"
+RATE_LIMIT_PERIOD = "3600"
+HOST = "0.0.0.0"
+PORT = "8000"
+DEBUG = "False"
+CORS_ORIGINS = "[\"https://*.vercel.app\", \"http://localhost:3000\"]"
+
+[[services]]
+name = "defi-risk-auditor-backend"
+port = 8000
+autoscaling = { min = 1, max = 3, cpuThreshold = 70, memoryThreshold = 80 }
