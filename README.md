@@ -260,6 +260,51 @@ The `render.yaml` file includes:
 - Redis cache for rate limiting and session storage
 - CORS configuration for frontend-backend communication
 
+### Troubleshooting Render Deployment
+
+If the Blueprint deployment fails, you can manually create the services:
+
+**Manual Deployment Steps:**
+
+1. **Create Backend Web Service (Python):**
+   - **Name**: `defi-risk-auditor-backend`
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r backend/requirements.txt`
+   - **Start Command**: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Health Check Path**: `/api/health`
+   - **Environment Variables**:
+     ```
+     OPENGRADIENT_PRIVATE_KEY=your_opengradient_private_key_here
+     OPENGRADIENT_SETTLEMENT_MODE=BATCH_HASHED
+     OPENGRADIENT_MODEL=GPT_5
+     REDIS_URL=redis://localhost:6379
+     CORS_ORIGINS=["https://*.onrender.com", "http://localhost:3000"]
+     ```
+
+2. **Create Frontend Web Service (Node.js):**
+   - **Name**: `defi-risk-auditor-frontend`
+   - **Runtime**: `Node`
+   - **Build Command**: `cd frontend && npm install && npm run build`
+   - **Start Command**: `cd frontend && npm start`
+   - **Environment Variables**:
+     ```
+     NEXT_PUBLIC_API_URL=https://defi-risk-auditor-backend.onrender.com
+     NEXT_PUBLIC_APP_NAME=DeFi Risk Auditor
+     NEXT_PUBLIC_APP_DESCRIPTION=TEE-verified DeFi protocol risk analysis with on-chain proof
+     NODE_ENV=production
+     ```
+
+3. **Optional: Create Redis Service** (only if needed for caching):
+   - **Name**: `redis`
+   - **Type**: `Redis`
+   - **Plan**: `Free`
+
+**Common Issues:**
+- **Frontend fails to build**: Ensure Node.js version >=18 (specified in `frontend/package.json`)
+- **Backend fails to start**: Check if OpenGradient package installed correctly
+- **CORS errors**: Update `CORS_ORIGINS` to include your frontend URL
+- **Health check fails**: The `/api/health` endpoint may fail if OpenGradient isn't configured
+
 ## Verification
 
 Every audit can be independently verified:
