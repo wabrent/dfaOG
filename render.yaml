@@ -15,10 +15,7 @@ services:
       - key: OPENGRADIENT_MODEL
         value: GPT_5
       - key: REDIS_URL
-        fromService:
-          name: redis
-          type: redis
-          property: connectionString
+        value: "redis://localhost:6379"  # Use localhost for now, can be updated to actual Redis service later
       - key: CACHE_TTL
         value: "300"
       - key: RATE_LIMIT_REQUESTS
