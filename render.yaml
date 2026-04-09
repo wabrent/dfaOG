@@ -1,5 +1,5 @@
 services:
-  # Backend API Service
+  # Backend API Service (Python)
   - type: web
     name: defi-risk-auditor-backend
     runtime: python
@@ -32,7 +32,7 @@ services:
     healthCheckPath: /api/health
     autoDeploy: true
 
-  # Frontend Web Service
+  # Frontend Web Service (Node.js - Next.js)
   - type: web
     name: defi-risk-auditor-frontend
     runtime: node
