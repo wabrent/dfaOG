@@ -7,30 +7,3 @@ name = "defi-risk-auditor-backend"
 version = "0.1.0"
 description = "TEE-verified DeFi protocol risk analysis with on-chain proof"
 requires-python = ">=3.11,<3.12"
-dependencies = [
-    "fastapi==0.104.1",
-    "uvicorn[standard]==0.24.0",
-    "opengradient>=0.9.6",
-    "python-dotenv==1.0.0",
-    "redis==5.0.1",
-    "httpx==0.25.2",
-    "pydantic>=1.10.0,<2.0.0",
-    "pydantic-settings>=1.0.0,<2.0.0",
-    "slowapi==0.1.8",
-    "python-multipart==0.0.6",
-    "aiofiles==23.2.1",
-    "click==8.1.7",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-asyncio",
-    "black",
-    "ruff",
-]
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["app*", "tests*"]
-exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
