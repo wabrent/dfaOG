@@ -29,11 +29,16 @@ async def verify_api_key(api_key: Optional[str] = Header(None)) -> bool:
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint"""
-    from app.services.opengradient_client import client
-    
+    # Try to check OpenGradient connection without causing initialization
     opengradient_connected = False
-    if client and client.initialized:
-        opengradient_connected = True
+    try:
+        from app.services.opengradient_client import client
+        if client is not None:
+            # Check if client has been initialized
+            opengradient_connected = hasattr(client, 'initialized') and client.initialized
+    except Exception:
+        # OpenGradient not available or not configured
+        opengradient_connected = False
     
     return HealthResponse(
         status="healthy",
