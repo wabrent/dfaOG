@@ -232,6 +232,34 @@ Set environment variables in Vercel dashboard:
 - `NEXT_PUBLIC_APP_NAME`: Application name
 - `NEXT_PUBLIC_APP_DESCRIPTION`: Application description
 
+### Full Stack (Render.com)
+
+Deploy the complete application stack (backend, frontend, and Redis) on Render.com:
+
+1. **Create a Render Account**: Sign up at [render.com](https://render.com)
+
+2. **Connect GitHub Repository**: Connect your GitHub repository containing this project
+
+3. **Deploy using render.yaml**: Render will automatically detect the `render.yaml` file and provision all services:
+   - Backend API service (Python)
+   - Frontend web service (Node.js)
+   - Redis cache service
+
+4. **Configure Environment Variables**:
+   - Set `OPENGRADIENT_PRIVATE_KEY` in the backend service
+   - Other variables are pre-configured in `render.yaml`
+
+5. **Access Your Application**:
+   - Frontend: `https://defi-risk-auditor-frontend.onrender.com`
+   - Backend API: `https://defi-risk-auditor-backend.onrender.com`
+   - API Documentation: `https://defi-risk-auditor-backend.onrender.com/docs`
+
+The `render.yaml` file includes:
+- Auto-deployment on git push
+- Health checks for backend service
+- Redis cache for rate limiting and session storage
+- CORS configuration for frontend-backend communication
+
 ## Verification
 
 Every audit can be independently verified:
