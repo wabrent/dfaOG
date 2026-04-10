@@ -1,0 +1,26 @@
+{
+  "functions": {
+    "api/*.py": {
+      "runtime": "python@3.14"
+    }
+  },
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ],
+  "env": {
+    "OPENGRADIENT_PRIVATE_KEY": "@opengradient_private_key",
+    "OPENGRADIENT_SETTLEMENT_MODE": "BATCH_HASHED",
+    "OPENGRADIENT_MODEL": "GPT_5",
+    "CORS_ORIGINS": "[\"https://*.vercel.app\", \"http://localhost:3000\"]",
+    "REDIS_URL": "@redis_url"
+  }
+}
