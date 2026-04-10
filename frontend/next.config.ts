@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-    NEXT_PUBLIC_APP_NAME: 'DeFi Risk Auditor',
-    NEXT_PUBLIC_APP_DESCRIPTION: 'TEE-verified DeFi protocol risk analysis with on-chain proof',
+    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'DeFi Risk Auditor',
+    NEXT_PUBLIC_APP_DESCRIPTION: process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'TEE-verified DeFi protocol risk analysis with on-chain proof',
   },
 };
 
